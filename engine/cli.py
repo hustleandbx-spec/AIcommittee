@@ -124,6 +124,134 @@ def _print_banner(project_name: str, desc: str, max_rounds: int, json_path: str,
 """)
 
 
+def main_cli():
+    """CLI 入口点 (供 pyproject.toml scripts 使用)。"""
+    parser = argparse.ArgumentParser(description="Committee — multi-model design review")
+    parser.add_argument("project", type=str, nargs="?", default=None,
+                        help="Project directory name or path")
+    parser.add_argument("--project-dir", type=str, default=None,
+                        help="Absolute path to project config directory")
+    parser.add_argument("--topic", "-t", type=str, default=None,
+                        help="Topic key or custom text")
+    parser.add_argument("--output", "-o", type=str, default=None,
+                        help="Actions JSON output path")
+    parser.add_argument("--max-rounds", "-r", type=int, default=None,
+                        help="Max debate rounds")
+    parser.add_argument("--list", action="store_true",
+                        help="List available topics for the selected project")
+    parser.add_argument("--json-only", action="store_true",
+                        help="Silent mode, no intermediate output")
+    parser.add_argument("--list-projects", action="store_true",
+                        help="List all available projects")
+    args = parser.parse_args()
+
+    # 定位 committee 根目录 (engine 的父目录)
+    engine_dir = Path(__file__).resolve().parent
+    committee_root = engine_dir.parent
+
+    # --project-dir: 直接使用外部项目目录
+    if args.project_dir:
+        project_path = Path(args.project_dir).resolve()
+        if not (project_path / "config.yaml").exists():
+            print(f"[!] config.yaml not found in {project_path}")
+            sys.exit(1)
+        main(
+            project_dir=str(project_path),
+            topic_arg=args.topic,
+            max_rounds=args.max_rounds,
+            output=args.output,
+            json_only=args.json_only,
+            list_topics=args.list,
+        )
+        return
+
+    # 自动检测: 当前目录下的 committee/ 子目录
+    cwd = Path.cwd()
+    local_committee = cwd / "committee"
+    if local_committee.is_dir() and (local_committee / "config.yaml").exists():
+        print(f"Auto-detected: {local_committee}")
+        main(
+            project_dir=str(local_committee),
+            topic_arg=args.topic,
+            max_rounds=args.max_rounds,
+            output=args.output,
+            json_only=args.json_only,
+            list_topics=args.list,
+        )
+        return
+
+    # 本地项目发现
+    projects = {}
+    for entry in committee_root.iterdir():
+        if entry.is_dir() and (entry / "config.yaml").exists():
+            cfg_name = entry.name
+            try:
+                import yaml
+                cfg = yaml.safe_load((entry / "config.yaml").read_text(encoding="utf-8"))
+                display = cfg.get("project_name", cfg_name)
+            except Exception:
+                display = cfg_name
+            projects[cfg_name] = display
+
+    if args.list_projects:
+        print("Available projects:")
+        for key, display in projects.items():
+            print(f"  {key}: {display}")
+        return
+
+    # 选择项目
+    project = args.project
+    if project is None:
+        keys = list(projects.keys())
+        if not keys:
+            print("[!] No local projects found.")
+            print("    Use --project-dir <path> to specify an external project.")
+            sys.exit(1)
+        if len(keys) == 1:
+            project = keys[0]
+            print(f"Auto-selected project: {projects[project]} ({project})")
+        else:
+            print("Available projects:")
+            for i, key in enumerate(keys, 1):
+                print(f"  [{i}] {key}: {projects[key]}")
+            try:
+                choice = input("\nSelect project: ").strip()
+                idx = int(choice) - 1
+                if 0 <= idx < len(keys):
+                    project = keys[idx]
+                else:
+                    print("Invalid selection.")
+                    sys.exit(1)
+            except (ValueError, IndexError):
+                print("Invalid selection.")
+                sys.exit(1)
+    elif project not in projects:
+        # 如果不是本地项目名，尝试作为路径
+        project_path = Path(project)
+        if project_path.exists() and (project_path / "config.yaml").exists():
+            main(
+                project_dir=str(project_path.resolve()),
+                topic_arg=args.topic,
+                max_rounds=args.max_rounds,
+                output=args.output,
+                json_only=args.json_only,
+                list_topics=args.list,
+            )
+            return
+        print(f"[!] Project '{project}' not found. Available: {', '.join(projects.keys())}")
+        print(f"    Use --project-dir <path> to specify an external project.")
+        sys.exit(1)
+
+    main(
+        project_dir=project,
+        topic_arg=args.topic,
+        max_rounds=args.max_rounds,
+        output=args.output,
+        json_only=args.json_only,
+        list_topics=args.list,
+    )
+
+
 def main(project_dir: str = None, topic_arg: str = None, max_rounds: int = None,
          output: str = None, json_only: bool = False, list_topics: bool = False) -> None:
     """委员会 CLI 入口。"""

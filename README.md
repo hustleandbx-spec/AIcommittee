@@ -4,10 +4,20 @@
 
 ## 快速开始
 
-### 1. 安装依赖
+### 1. 安装
+
+在 `committee` 目录下执行：
 
 ```bash
-pip install langchain langchain-openai langgraph python-dotenv pyyaml
+pip install -e .
+```
+
+这会安装所有依赖并注册 `committee` 命令到系统 PATH，之后可在任意目录调用。
+
+如果只想安装依赖而不注册命令：
+
+```bash
+pip install langchain langchain-openai langchain-anthropic langgraph python-dotenv pyyaml
 ```
 
 ### 2. 配置 API 凭证
@@ -43,20 +53,36 @@ COMMITTEE_MAX_ROUNDS=3
 
 ### 4. 运行
 
+在项目目录下直接运行，会自动检测当前目录的 `committee/` 子目录：
+
 ```bash
+cd /your/project
+
 # 指定议题
-python committee.py --project-dir /path/to/project/committee --topic my_topic
+committee --topic my_topic
 
 # 交互式选择议题
-python committee.py --project-dir /path/to/project/committee
+committee
 
 # 列出可用议题
-python committee.py --project-dir /path/to/project/committee --list
+committee --list
 
 # 自定义议题 / 静默 / 指定轮数
-python committee.py --project-dir /path/to/project/committee --topic "评估方案 X 的可行性"
-python committee.py --project-dir /path/to/project/committee --topic my_topic --json-only
-python committee.py --project-dir /path/to/project/committee --topic my_topic --max-rounds 5
+committee --topic "评估方案 X 的可行性"
+committee --topic my_topic --json-only
+committee --topic my_topic --max-rounds 5
+```
+
+也可以通过 `--project-dir` 明确指定配置目录（用于测试不同配置或配置不在当前目录时）：
+
+```bash
+committee --project-dir /path/to/other/committee --topic my_topic
+```
+
+其他命令：
+
+```bash
+committee --list-projects   # 列出所有本地项目
 ```
 
 ## 输出产物
@@ -140,9 +166,10 @@ topics:
 ```
 committee/
 ├── README.md
+├── pyproject.toml         ← 包配置 + CLI 入口注册
 ├── .env.example           ← API 凭证模板
 ├── .gitignore
-├── committee.py           ← CLI 入口
+├── committee.py           ← 本地 CLI 入口
 └── engine/                ← 核心引擎 (项目无关)
     ├── __init__.py
     ├── cli.py             ← 配置加载 + 辩论执行
