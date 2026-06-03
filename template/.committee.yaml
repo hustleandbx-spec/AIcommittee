@@ -1,0 +1,90 @@
+# .committee.yaml 示例元数据
+# 用于测试 generate.py
+
+project:
+  name: "Template Test"
+  type: "嵌入式系统"
+  domain: "测试领域"
+  description: "用于测试生成脚本的示例项目"
+
+providers:
+  qwen:
+    api_key_env: QWEN_API_KEY
+    base_url_env: QWEN_BASE_URL
+  deepseek:
+    api_key_env: DEEPSEEK_API_KEY
+    base_url_env: DEEPSEEK_BASE_URL
+  mimo:
+    api_key_env: MIMO_API_KEY
+    base_url_env: MIMO_BASE_URL
+
+roles:
+  architect:
+    description: "首席系统架构师"
+    provider: qwen
+    model: qwen3.7-max-2026-05-17
+    temperature: 0.3
+  domain_expert:
+    description: "领域专家"
+    provider: deepseek
+    model: deepseek-v4-pro
+    temperature: 0.3
+  critic:
+    description: "极端反驳专家"
+    provider: mimo
+    model: mimo-v2.5
+    temperature: 0.7
+  auditor:
+    description: "底层性能审计师"
+    provider: mimo
+    model: mimo-v2.5
+    temperature: 0.1
+
+pipeline:
+  - node: architect_review
+    role: architect
+    type: review
+  - node: domain_expert_review
+    role: domain_expert
+    type: review
+  - node: critic_attack
+    role: critic
+    type: attack
+  - node: auditor_audit
+    role: auditor
+    type: audit
+
+hardware:
+  platform: "[待补充]"
+  resources:
+    flash: "[待补充]"
+    ram: "[待补充]"
+  peripherals: []
+
+architecture:
+  os: "[待补充]"
+  modules: []
+  tasks: []
+
+constraints:
+  realtime: []
+  safety: []
+
+experts:
+  - key: "domain_expert"
+    domain: "[待确认]"
+    description: "领域专家"
+    focus: "[待确认]"
+    ignore: "[待确认]"
+    knowledge: []
+    dimensions: []
+
+attack_scenarios: []
+
+topics:
+  - id: "main_module"
+    module: "[待补充]"
+    summary: "[待补充]"
+    attack_angles:
+      - "[待补充]"
+    desc: "[待补充]"

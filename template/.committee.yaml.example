@@ -1,0 +1,315 @@
+# .committee.yaml 示例文件
+# 项目: 光电吊舱目标检测系统
+# 说明: 这是一个完整的示例，展示 .committee.yaml 的格式
+
+# ===========================================================================
+# 项目基本信息
+# ===========================================================================
+project:
+  name: "ODT (光电吊舱目标检测)"
+  type: "实时嵌入式 AI 系统"
+  domain: "光电吊舱目标检测与跟踪"
+  description: "光电吊舱上的实时嵌入式 AI 目标检测与跟踪系统"
+
+# ===========================================================================
+# API 提供商（使用默认值）
+# ===========================================================================
+providers:
+  qwen:
+    api_key_env: QWEN_API_KEY
+    base_url_env: QWEN_BASE_URL
+  deepseek:
+    api_key_env: DEEPSEEK_API_KEY
+    base_url_env: DEEPSEEK_BASE_URL
+  mimo:
+    api_key_env: MIMO_API_KEY
+    base_url_env: MIMO_BASE_URL
+
+# ===========================================================================
+# 角色定义
+# ===========================================================================
+roles:
+  architect:
+    description: "首席系统架构师"
+    provider: qwen
+    model: qwen3.7-max-2026-05-17
+    temperature: 0.3
+
+  vision_expert:
+    description: "光电吊舱目标检测与跟踪算法专家"
+    provider: deepseek
+    model: deepseek-v4-pro
+    temperature: 0.3
+
+  deployment_expert:
+    description: "光电吊舱系统设计与无人机侦察应用专家"
+    provider: deepseek
+    model: deepseek-v4-pro
+    temperature: 0.3
+
+  critic:
+    description: "极端反驳专家"
+    provider: mimo
+    model: mimo-v2.5
+    temperature: 0.7
+
+  auditor:
+    description: "底层性能与编译专家"
+    provider: mimo
+    model: mimo-v2.5
+    temperature: 0.1
+
+# ===========================================================================
+# 流水线拓扑
+# ===========================================================================
+pipeline:
+  - node: architect_review
+    role: architect
+    type: review
+
+  - node: vision_review
+    role: vision_expert
+    type: review
+
+  - node: deployment_review
+    role: deployment_expert
+    type: review
+
+  - node: critic_attack
+    role: critic
+    type: attack
+
+  - node: runtime_audit
+    role: auditor
+    type: audit
+
+# ===========================================================================
+# 硬件平台
+# ===========================================================================
+hardware:
+  platform: "NVIDIA Jetson Orin (AGX / NX)"
+  resources:
+    flash: "64GB eMMC"
+    ram: "32GB LPDDR5"
+    gpu_memory: "32GB 统一内存"
+  peripherals:
+    - name: "可见光相机"
+      model: "1080P CMOS"
+      interface: "MIPI CSI"
+      frequency: "60fps"
+    - name: "红外相机"
+      model: "640×512 LWIR"
+      interface: "MIPI CSI"
+      frequency: "30fps"
+
+# ===========================================================================
+# 软件架构
+# ===========================================================================
+architecture:
+  os: "Linux (JetPack)"
+  modules:
+    - name: "Preprocessor"
+      description: "图像预处理（Letterbox/Resize + 归一化 + 格式转换）"
+      location: "preprocess.cu"
+    - name: "InferenceEngine"
+      description: "TensorRT 推理引擎"
+      location: "inference_engine.cpp"
+    - name: "Decoder"
+      description: "检测框解码（5 种范式）"
+      location: "decoder.cu"
+    - name: "Postprocessor"
+      description: "NMS + 坐标还原"
+      location: "postprocess.cpp"
+    - name: "PipelineScheduler"
+      description: "三缓冲流水线调度器"
+      location: "pipeline_scheduler.cpp"
+  tasks:
+    - name: "capture_thread"
+      period: "20ms (50fps)"
+      priority: "high"
+      wcet: "5ms"
+      stack: "4MB"
+    - name: "inference_thread"
+      period: "20ms"
+      priority: "high"
+      wcet: "10ms"
+      stack: "8MB"
+    - name: "postprocess_thread"
+      period: "20ms"
+      priority: "medium"
+      wcet: "2ms"
+      stack: "4MB"
+  buses:
+    - name: "PCIe"
+      devices: "GPU"
+      speed: "16GT/s"
+      arbitration: "硬件仲裁"
+    - name: "LPDDR5"
+      devices: "CPU/GPU 共享"
+      speed: "6400MHz"
+      arbitration: "统一内存"
+
+# ===========================================================================
+# 约束条件
+# ===========================================================================
+constraints:
+  realtime:
+    - description: "端到端延迟 < 200ms (光子→OSD 显示)"
+      type: "hard"
+    - description: "AI 推理延迟 < 10ms"
+      type: "hard"
+    - description: "帧率 ≥ 50fps"
+      type: "hard"
+    - description: "CPU 利用率 ≤ 70%"
+      type: "soft"
+  safety:
+    - description: "模型切换时不得丢帧"
+    - description: "显存溢出时必须 graceful degradation"
+    - description: "温度降频时帧率可降低但不得卡顿"
+  mbd:
+    enabled: false
+
+# ===========================================================================
+# 领域专家配置
+# ===========================================================================
+experts:
+  - key: "vision_expert"
+    domain: "光电吊舱目标检测与跟踪"
+    description: "光电吊舱目标检测与跟踪算法专家"
+    focus: "算法正确性与算法选型合理性"
+    ignore: "软件架构是否优雅"
+    knowledge:
+      - title: "光电吊舱目标检测的算法版图"
+        points:
+          - "可见光依赖纹理/颜色/边缘特征，红外依赖热辐射差异"
+          - "小目标检测: FPN/PANet 的理论能力与实际局限"
+          - "背景杂波: 云层边缘、地面热源对虚警率的影响"
+      - title: "跟踪算法在侦察场景下的实战约束"
+        points:
+          - "MOT vs SOT 选型: 区域监视→MOT，目标锁定→SOT"
+          - "吊舱转动时目标短暂出视场 → tracklet 不应立即销毁"
+          - "经典方法 (KCF/SiamFC) vs Transformer-based 跟踪"
+      - title: "算法发展趋势与架构前瞻性"
+        points:
+          - "Anchor-Based → Anchor-Free → 端到端 (DETR/DINO)"
+          - "NMS-free 模型在实时场景的优势"
+          - "基础模型 (Grounding DINO / SAM) 的嵌入式可行性"
+    dimensions:
+      - "检测范式选型合理性"
+      - "框编码与坐标还原正确性"
+      - "类别语义与置信度"
+      - "多目标跟踪 (MOT) 正确性"
+      - "算法边界条件"
+      - "算法选型与场景适配"
+
+  - key: "deployment_expert"
+    domain: "光电吊舱系统设计与无人机侦察"
+    description: "光电吊舱系统设计与无人机侦察应用专家"
+    focus: "物理可行性与任务适配性"
+    ignore: "软件架构是否优雅"
+    knowledge:
+      - title: "光电吊舱系统架构"
+        points:
+          - "可见光和红外是两套完全不同的传感器链路"
+          - "稳定平台的稳像精度 (μrad 级) 决定了目标抖动幅度"
+          - "随动控制延迟决定了吊舱转动时目标可能短暂出视场"
+      - title: "无人机侦察任务剖面"
+        points:
+          - "广域搜索: 高通量、低漏检、容忍虚警"
+          - "目标锁定: 高精度、低虚警、抗遮挡"
+          - "混合模式: 先 MOT 检测感兴趣目标，再 SOT 锁定"
+      - title: "吊舱物理约束"
+        points:
+          - "功耗预算 50~150W，AI 推理不能独占"
+          - "温度累积 → NPU/GPU 降频 → 性能退化"
+          - "振动、冲击、电磁干扰"
+    dimensions:
+      - "传感器链路适配性"
+      - "功耗与散热可行性"
+      - "任务模式切换逻辑"
+      - "环境适应性（温度/振动/EMI）"
+      - "人因工程与实战可用性"
+
+# ===========================================================================
+# 攻击场景
+# ===========================================================================
+attack_scenarios:
+  - name: "运行时崩溃"
+    description: "YOLO → DETR 在线动态切换瞬间，显存溢出 (OOM) 或 CUDA illegal memory access"
+    extensions:
+      - "三缓冲流水线中一帧还在 GPU 推理，另一帧请求模型切换——竞态条件？"
+      - "热切换时旧模型的输出缓冲区被新模型覆盖——脏数据？"
+      - "长时间运行后显存碎片化，大模型加载失败"
+
+  - name: "迁移时失效"
+    description: "代码从 NVIDIA Jetson 迁移到 RK3588 或昇腾 310P 时，核心抽象无法工作"
+    extensions:
+      - "RK3588 的 RGA 不支持 Letterbox → 预处理降级？"
+      - "Ascend 310P 的 DVPP 不支持浮点预处理 → 精度损失？"
+      - "TensorRT 的 Dynamic Shape 在 RKNN/AscendCL 中是否有等价机制？"
+
+  - name: "扩展时断裂"
+    description: "新增检测模型时，现有接口无法适配，需要大量 breaking changes"
+    extensions:
+      - "新模型的输出 tensor 数量/形状与现有范式都不匹配"
+      - "新模型需要特殊的后处理（如 deformable attention 解码）"
+      - "新模型的输入分辨率与现有 Dynamic Shape profile 不兼容"
+
+  - name: "算法与工程脱节"
+    description: "架构师的设计在软件工程上正确，但在 CV 算法假设上错误"
+    extensions:
+      - "对 NMS-free 模型错误引入 NMS 后处理"
+      - "对 softmax 互斥模型使用 sigmoid 独立分类"
+      - "假设红外和可见光可共用相同的 MeanStd 归一化参数"
+
+  - name: "物理约束违反"
+    description: "架构师的设计违反了吊舱的物理约束或无人机侦察任务的实际需求"
+    extensions:
+      - "假设无限显存——嵌入式 GPU 只有 4~16GB"
+      - "忽略温度降频——连续推理 30 分钟后 NPU 降频 30%"
+      - "假设零震动——吊舱稳像残余抖动导致目标跳动"
+
+  - name: "人因工程与实战可用性"
+    description: "系统技术指标达标，但在实际使用中不可用"
+    extensions:
+      - "检测框在 OSD 上闪烁/跳动——操纵员无法信任"
+      - "虚警率过高——操纵员被误报淹没"
+      - "模型切换时画面卡顿——战术场景不可接受"
+
+# ===========================================================================
+# 议题
+# ===========================================================================
+topics:
+  - id: "decoder_registry"
+    module: "decoder_registry.cpp"
+    summary: "5 种解码范式 → 函数指针查表 → paradigm YAML 驱动"
+    attack_angles:
+      - "DINO 的 num_queries=900, 当前 TensorInfo.branches[8] 是否装得下?"
+      - "5 个独立 CUDA kernel 的代码重复度——是否有模板化合并空间?"
+    desc: "解码器注册表 + 5 类范式审计"
+
+  - id: "pipeline_scheduler"
+    module: "PipelineScheduler"
+    summary: "3×PipelineSlot + 3×CUDA Stream + cudaEvent 异步同步"
+    attack_angles:
+      - "YOLO→DETR 运行时切换时，三缓冲是否需要排空 (flush)?"
+      - "RK3588 无 CUDA Stream 概念——三缓冲抽象是否泄漏了 CUDA 假设?"
+    desc: "三缓冲流水线 + 多模型切换审计"
+
+  - id: "backend_abstraction"
+    module: "inference_engine.h"
+    summary: "4 个纯虚方法 + BackendType 枚举"
+    attack_angles:
+      - "昇腾 ACL 的 Device/Context 模型与 CUDA implicit context 根本不同——4 个方法是否够?"
+      - "多后端共存——单例 BackendType 枚举是否足够?"
+      - "GetOutputInfo() 返回 TensorInfo——是否带 CUDA 偏见?"
+    desc: "推理后端抽象接口 + 国产硬件迁移审计"
+
+  - id: "preprocess_fusion"
+    module: "preprocess.cu"
+    summary: "编译期模板 6 变体 + 运行时函数指针查表"
+    attack_angles:
+      - "6 变体是否覆盖所有已知模型? RT-DETR 的 MeanStd + Stretch 组合是否在列?"
+      - "模板膨胀: 6 变体 × 3 精度 = 18 个 kernel 实例，编译时间和二进制大小?"
+      - "纹理内存 (tex2Dfetch) 对 uint8 输入的加速效果——在 Jetson Orin 上是否实测验证?"
+    desc: "预处理融合 kernel + CUDA 模板审计"

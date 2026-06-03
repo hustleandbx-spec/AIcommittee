@@ -1,0 +1,128 @@
+# <项目名> 项目配置 — 架构委员会
+# 目录结构相对于此文件所在目录 (committee/<project>/)
+
+project_name: "<项目显示名>"
+
+# ---------------------------------------------------------------------------
+# API 提供商凭证 (凭证本身在 .env, 此处声明环境变量名)
+# ---------------------------------------------------------------------------
+providers:
+  qwen:
+    api_key_env: QWEN_API_KEY
+    base_url_env: QWEN_BASE_URL
+  deepseek:
+    api_key_env: DEEPSEEK_API_KEY
+    base_url_env: DEEPSEEK_BASE_URL
+  mimo:
+    api_key_env: MIMO_API_KEY
+    base_url_env: MIMO_BASE_URL
+
+# ---------------------------------------------------------------------------
+# 角色模型配置
+#
+# 设计原则:
+#   - 软件工程角色 (architect, critic) 负责架构质量
+#   - 领域专家角色 (expert_1, expert_2) 负责垂直领域正确性
+#   - 性能角色 (auditor) 负责运行时量化审计
+#
+# 领域专家的存在是为了弥补纯软件架构师在垂直领域知识上的盲区:
+#   - 架构师可能在软件工程上做对，但在 <领域 1> 假设上做错
+#     (例如 <具体例子>)
+#   - 架构师可能设计了优雅的抽象，但违反 <领域 2> 物理约束或任务需求
+#     (例如 <具体例子>)
+# ---------------------------------------------------------------------------
+roles:
+  architect:
+    description: "首席系统架构师"
+    provider: qwen
+    model: qwen3.7-max-2026-05-17
+    temperature: 0.3
+
+  expert_1:
+    description: "<领域 1 专家描述>"
+    provider: deepseek
+    model: deepseek-v4-pro
+    temperature: 0.3
+
+  expert_2:
+    description: "<领域 2 专家描述>"
+    provider: deepseek
+    model: deepseek-v4-pro
+    temperature: 0.3
+
+  critic:
+    description: "极端反驳专家"
+    provider: mimo
+    model: mimo-v2.5
+    temperature: 0.7
+
+  auditor:
+    description: "底层性能与编译专家"
+    provider: mimo
+    model: mimo-v2.5
+    temperature: 0.1
+
+# ---------------------------------------------------------------------------
+# 流水线拓扑
+#
+# 执行顺序:
+#   1. architect_review   — 架构师提出设计方案
+#   2. expert_1_review    — 领域专家 1 评审正确性
+#   3. expert_2_review    — 领域专家 2 评审可行性
+#   4. critic_attack      — 反驳专家寻找所有设计缺陷
+#   5. auditor_audit      — 性能专家量化审计
+#   6. router → loop back to 1 or finalize
+#   7. chief_converge     — 汇总生成行动项
+# ---------------------------------------------------------------------------
+pipeline:
+  max_rounds_env: COMMITTEE_MAX_ROUNDS
+  max_rounds_default: 3
+  converge_role: architect
+
+  debate_stages:
+    - node: architect_review
+      role: architect
+      type: review
+
+    - node: expert_1_review
+      role: expert_1
+      type: review
+
+    - node: expert_2_review
+      role: expert_2
+      type: review
+
+    - node: critic_attack
+      role: critic
+      type: attack
+
+    - node: auditor_audit
+      role: auditor
+      type: audit
+
+# ---------------------------------------------------------------------------
+# 共享事实文件 (相对路径)
+# 这些是委员会的「唯一事实源」，Agent 不得自行编造
+# ---------------------------------------------------------------------------
+shared_context:
+  files:
+    - shared_context/<fact_1>.md
+    - shared_context/<fact_2>.md
+
+# ---------------------------------------------------------------------------
+# 自定义提示词 (按节点名覆盖引擎内置默认)
+#
+# 查找顺序: node_name → type → DEFAULT_PROMPTS
+# 例如 architect_review → review → 内置 review 默认模板
+#
+# 领域专家的提示词中包含了其专属的审查维度和场景，
+# 这些内容不属于「事实」(不在 shared_context)，
+# 而是「方法论」(如何审查这个领域的设计)。
+# ---------------------------------------------------------------------------
+prompts:
+  architect_review: prompts/architect_review.md
+  expert_1_review: prompts/expert_1_review.md
+  expert_2_review: prompts/expert_2_review.md
+  critic_attack: prompts/critic_attack.md
+  auditor_audit: prompts/auditor_audit.md
+  converge: prompts/converge.md

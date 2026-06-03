@@ -22,3 +22,6 @@ build/
 # OS
 .DS_Store
 Thumbs.db
+
+# 过往项目委员会配置
+project/
